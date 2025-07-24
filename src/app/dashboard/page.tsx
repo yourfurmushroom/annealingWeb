@@ -35,11 +35,11 @@ export default function Home() {
         }
     },[pageName])
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [row, setRow] = useState<number>(31)
+    const [row, setRow] = useState<number>(0)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [column, setColumn] = useState<number>(30)
+    const [column, setColumn] = useState<number>(0)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [name, setName] = useState<string>("untitled2")
+    const [name, setName] = useState<string>("untitled")
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [isModify, setModify] = useState<boolean>(false)
 
