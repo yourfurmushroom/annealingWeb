@@ -35,7 +35,7 @@ export default function Home() {
         }
     },[pageName])
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [row, setRow] = useState<number>(30)
+    const [row, setRow] = useState<number>(31)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [column, setColumn] = useState<number>(30)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -116,6 +116,33 @@ export default function Home() {
 
         return initialStatus;
     });
+
+    useEffect(() => {
+    setGridStatus((prev) => {
+        const newGrid = [...prev];
+
+        // 補足 row 數
+        while (newGrid.length < row) {
+            newGrid.push(Array(column).fill('上班'));
+        }
+
+        // 裁剪多餘的 row
+        if (newGrid.length > row) {
+            newGrid.length = row;
+        }
+
+        // 補足/裁剪 column
+        for (let i = 0; i < newGrid.length; i++) {
+            if (newGrid[i].length < column) {
+                newGrid[i] = [...newGrid[i], ...Array(column - newGrid[i].length).fill('上班')];
+            } else if (newGrid[i].length > column) {
+                newGrid[i] = newGrid[i].slice(0, column);
+            }
+        }
+
+        return newGrid;
+    });
+}, [row, column]);
 
     return (
         <>
