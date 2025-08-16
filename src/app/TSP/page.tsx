@@ -1,0 +1,265 @@
+'use client'
+/* eslint-disable */
+import React, { useActionState, useEffect, useRef, useState } from "react";
+import Navbar from "../dashboard/Component/Navbar";
+import { useRouter } from 'next/navigation';
+
+export default function Home() {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const router = useRouter();
+    const [pageName, setPageName, isLoaded] = useActionState((prev: string, nextPage: string) => {
+        return nextPage
+    }, 'TSP')
+    useEffect(() => {
+        console.log(pageName)
+        if (pageName === "Dashboard") {
+            router.push("/dashboard")
+        }
+        else if (pageName === "Digital") {
+            router.push("/digitalAnnealing")
+        }
+        else if(pageName==="TSP")
+        {
+            router.push("/TSP")
+        }
+    }, [pageName])
+
+    // State for houses positions (5 houses)
+    const [houses, setHouses] = useState<{x: number, y: number}[]>([]);
+    // State for current path (array of indices, e.g., [0,1,2,3,4])
+    const [currentPath, setCurrentPath] = useState<number[]>([]);
+    // State for current distance
+    const [currentDistance, setCurrentDistance] = useState<number>(0);
+    // Distances matrix
+    const [distances, setDistances] = useState<number[][]>([]);
+    // State for iteration speed (in milliseconds)
+    const [iterationSpeed, setIterationSpeed] = useState<number>(2000); // Default 2 seconds
+    // State for selected starting point (null if not set)
+    const [startPoint, setStartPoint] = useState<number | null>(null);
+
+    // Simulated Annealing parameters
+    const initialTemp = 1000;
+    const coolingRate = 0.995;
+    const [temperature, setTemperature] = useState(initialTemp);
+
+    // Function to initialize or reinitialize
+    const initialize = () => {
+        if (canvasRef.current) {
+            const canvas = canvasRef.current;
+            const width = window.innerWidth;
+            const height = window.innerHeight - 50; // Adjust for navbar or other elements
+            canvas.width = width;
+            canvas.height = height;
+
+            // Generate 5 random houses
+            const newHouses = Array.from({length: 5}, () => ({
+                x: Math.random() * (width - 100) + 50,
+                y: Math.random() * (height - 100) + 50
+            }));
+            setHouses(newHouses);
+
+            // Compute distances (Euclidean)
+            const newDistances = newHouses.map((h1, i) =>
+                newHouses.map((h2, j) => {
+                    if (i === j) return 0;
+                    return Math.sqrt(Math.pow(h1.x - h2.x, 2) + Math.pow(h1.y - h2.y, 2));
+                })
+            );
+            setDistances(newDistances);
+
+            // Initial random path (permutation of 0 to 4)
+            let initialPath = [0,1,2,3,4].sort(() => Math.random() - 0.5);
+            // If startPoint is set, ensure it is first
+            if (startPoint !== null) {
+                const idx = initialPath.indexOf(startPoint);
+                if (idx !== -1) {
+                    initialPath.splice(idx, 1);
+                    initialPath = [startPoint, ...initialPath];
+                }
+            }
+            setCurrentPath(initialPath);
+            setCurrentDistance(calculatePathDistance(initialPath, newDistances));
+
+            // Reset temperature
+            setTemperature(initialTemp);
+        }
+    };
+
+    // Generate random houses and initial path on mount
+    useEffect(() => {
+        initialize();
+    }, []);
+
+    // Function to calculate path distance
+    const calculatePathDistance = (path: number[], dists: number[][]): number => {
+        let dist = 0;
+        for (let i = 0; i < path.length; i++) {
+            dist += dists[path[i]][path[(i + 1) % path.length]];
+        }
+        return dist;
+    };
+
+    // Perform one SA iteration
+    const performSAIteration = () => {
+        if (currentPath.length === 0 || distances.length === 0) return;
+
+        // Copy current path
+        let newPath = [...currentPath];
+
+        // Swap two random cities, excluding the start point if set
+        let idx1 = startPoint !== null ? Math.floor(Math.random() * 4) + 1 : Math.floor(Math.random() * 5);
+        let idx2 = startPoint !== null ? Math.floor(Math.random() * 4) + 1 : Math.floor(Math.random() * 5);
+        while (idx1 === idx2) idx2 = startPoint !== null ? Math.floor(Math.random() * 4) + 1 : Math.floor(Math.random() * 5);
+        [newPath[idx1], newPath[idx2]] = [newPath[idx2], newPath[idx1]];
+
+        // Calculate deltas
+        const newDist = calculatePathDistance(newPath, distances);
+        const delta = newDist - currentDistance;
+
+        // Accept if better or with probability
+        if (delta < 0 || Math.random() < Math.exp(-delta / temperature)) {
+            setCurrentPath(newPath);
+            setCurrentDistance(newDist);
+        }
+
+        // Cool down
+        setTemperature(prev => prev * coolingRate);
+    };
+
+    // Run iteration based on iterationSpeed
+    useEffect(() => {
+        const interval = setInterval(() => {
+            performSAIteration();
+        }, iterationSpeed);
+
+        return () => clearInterval(interval);
+    }, [currentPath, currentDistance, temperature, distances, iterationSpeed, startPoint]);
+
+    // Handle canvas click to set starting point
+    const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+        if (canvasRef.current) {
+            const canvas = canvasRef.current;
+            const rect = canvas.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const clickY = event.clientY - rect.top;
+
+            // Find closest house
+            let closestIdx = -1;
+            let minDist = Infinity;
+            houses.forEach((house, idx) => {
+                const dist = Math.sqrt(Math.pow(house.x - clickX, 2) + Math.pow(house.y - clickY, 2));
+                if (dist < minDist && dist < 20) { // Threshold to ensure click is near a house
+                    minDist = dist;
+                    closestIdx = idx;
+                }
+            });
+
+            if (closestIdx !== -1) {
+                setStartPoint(closestIdx);
+                // Reinitialize to reset temperature and randomize path with new start
+                const newPath = [closestIdx, ...[0,1,2,3,4].filter(i => i !== closestIdx).sort(() => Math.random() - 0.5)];
+                setCurrentPath(newPath);
+                setCurrentDistance(calculatePathDistance(newPath, distances));
+                setTemperature(initialTemp);
+            }
+        }
+    };
+
+    // Draw on canvas whenever houses, path, or distances change
+    useEffect(() => {
+        if (canvasRef.current && houses.length > 0) {
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw all connections in gray
+            ctx.strokeStyle = 'gray';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 5; i++) {
+                for (let j = i + 1; j < 5; j++) {
+                    ctx.beginPath();
+                    ctx.moveTo(houses[i].x, houses[i].y);
+                    ctx.lineTo(houses[j].x, houses[j].y);
+                    ctx.stroke();
+
+                    // Draw distance in middle
+                    const midX = (houses[i].x + houses[j].x) / 2;
+                    const midY = (houses[i].y + houses[j].y) / 2;
+                    ctx.fillStyle = 'black';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(distances[i][j].toFixed(0), midX, midY);
+                }
+            }
+
+            // Draw selected path in red
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 3;
+            for (let i = 0; i < currentPath.length; i++) {
+                const from = currentPath[i];
+                const to = currentPath[(i + 1) % currentPath.length];
+                ctx.beginPath();
+                ctx.moveTo(houses[from].x, houses[from].y);
+                ctx.lineTo(houses[to].x, houses[to].y);
+                ctx.stroke();
+            }
+
+            // Draw houses as blue circles, highlight start point in green if set
+            houses.forEach((house, idx) => {
+                ctx.fillStyle = idx === startPoint ? 'green' : 'blue';
+                ctx.beginPath();
+                ctx.arc(house.x, house.y, 10, 0, 2 * Math.PI);
+                ctx.fill();
+                // Label house number
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.fillText((idx + 1).toString(), house.x - 5, house.y + 5);
+            });
+        }
+    }, [houses, currentPath, distances, startPoint]);
+
+    // Function to handle iteration speed change
+    const handleSpeedChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const newSpeed = parseInt(event.target.value);
+        setIterationSpeed(newSpeed);
+    };
+
+    return (
+        <>
+            <Navbar setPageName={(e) => setPageName(e)}></Navbar>
+            <div style={{ position: 'relative' }}>
+                <canvas ref={canvasRef} style={{ display: 'block' }} onClick={handleCanvasClick}></canvas>
+                {/* Right top bar for path, distance, and controls */}
+                <div style={{
+                    position: 'absolute',
+                    top: '10px',
+                    right: '10px',
+                    background: 'white',
+                    padding: '10px',
+                    border: '1px solid black',
+                    zIndex: 10
+                }}>
+                    <p>Current Path: {currentPath.map(i => i+1).join(' -> ')} {currentPath[0]+1}</p>
+                    <p>Total Distance: {currentDistance.toFixed(2)}</p>
+                    <p>Temperature: {temperature.toFixed(2)}</p>
+                    <p>Start Point: {startPoint !== null ? startPoint + 1 : 'Not set'}</p>
+                    <div style={{ marginTop: '10px' }}>
+                        <label>Iteration Speed (ms): </label>
+                        <input
+                            type="range"
+                            min="1"
+                            max="5000"
+                            step="1"
+                            value={iterationSpeed}
+                            onChange={handleSpeedChange}
+                            style={{ width: '100%' }}
+                        />
+                        <span>{iterationSpeed} ms</span>
+                    </div>
+                    <button onClick={initialize} style={{ marginTop: '10px' }}>Reset and Randomize</button>
+                </div>
+            </div>
+        </>
+    );
+}

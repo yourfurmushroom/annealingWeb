@@ -33,11 +33,15 @@ export default function Home() {
         {
             router.push("/digitalAnnealing")
         }
+        else if(pageName==="TSP")
+        {
+            router.push("/TSP")
+        }
     },[pageName])
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [row, setRow] = useState<number>(0)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [column, setColumn] = useState<number>(0)
+    const [column, setColumn] = useState<number>(30)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [name, setName] = useState<string>("untitled")
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
