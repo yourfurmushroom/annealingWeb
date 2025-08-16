@@ -18,6 +18,10 @@ export default function Home() {
         else if (pageName === "Digital") {
             router.push("/digitalAnnealing")
         }
+        else if(pageName==="TSP")
+        {
+            router.push("/TSP")
+        }
     }, [pageName])
     useEffect(() => {
         const loadUnity = async () => {
