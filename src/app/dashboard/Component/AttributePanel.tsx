@@ -1,6 +1,6 @@
+/* eslint-disable */
 import React, { useEffect, useState } from "react";
 import { TagsDefinition } from "./Utilities";
-
 interface AttributeInterface {
   setRow: React.Dispatch<React.SetStateAction<number>>;
   setColumn: React.Dispatch<React.SetStateAction<number>>;

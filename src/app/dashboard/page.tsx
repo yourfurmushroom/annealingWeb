@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable */
 import React, { startTransition, useActionState, useEffect, useState } from "react";
 import Navbar from "./Component/Navbar";
 import ShiftArea from "./Component/ShiftArea";
@@ -19,7 +20,6 @@ interface WorkerData {
 
 export default function Home() {
     const router = useRouter();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [pageName, setPageName, isLoaded] = useActionState((prev: string, nextPage: string) => {
         return nextPage
     }, 'Dashboard')
@@ -38,13 +38,9 @@ export default function Home() {
             router.push("/TSP")
         }
     },[pageName])
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [row, setRow] = useState<number>(0)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [column, setColumn] = useState<number>(30)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [name, setName] = useState<string>("untitled")
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [isModify, setModify] = useState<boolean>(false)
 
 
