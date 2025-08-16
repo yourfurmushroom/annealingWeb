@@ -33,9 +33,13 @@ export default function Home() {
     // Distances matrix
     const [distances, setDistances] = useState<number[][]>([]);
     // State for iteration speed (in milliseconds)
-    const [iterationSpeed, setIterationSpeed] = useState<number>(2000); // Default 2 seconds
+    const [iterationSpeed, setIterationSpeed] = useState<number>(500); // Default 2 seconds
     // State for selected starting point (null if not set)
     const [startPoint, setStartPoint] = useState<number | null>(null);
+    // State for panel position and dragging
+    const [panelPosition, setPanelPosition] = useState<{x: number, y: number}>({ x: 10, y: 10 });
+    const [isDragging, setIsDragging] = useState<boolean>(false);
+    const [dragOffset, setDragOffset] = useState<{x: number, y: number}>({ x: 0, y: 0 });
 
     // Simulated Annealing parameters
     const initialTemp = 1000;
@@ -165,6 +169,43 @@ export default function Home() {
         }
     };
 
+    // Handle mouse down on panel navbar to start dragging
+    const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+        // Only start dragging if the target is the navbar
+        if ((event.target as HTMLElement).className.includes('draggable-navbar')) {
+            setIsDragging(true);
+            setDragOffset({
+                x: event.clientX - panelPosition.x,
+                y: event.clientY - panelPosition.y
+            });
+        }
+    };
+
+    // Handle mouse move to update panel position
+    const handleMouseMove = (event: MouseEvent) => {
+        if (isDragging) {
+            setPanelPosition({
+                x: event.clientX - dragOffset.x,
+                y: event.clientY - dragOffset.y
+            });
+        }
+    };
+
+    // Handle mouse up to stop dragging
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    // Add global mouse move and up listeners
+    useEffect(() => {
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging, dragOffset]);
+
     // Draw on canvas whenever houses, path, or distances change
     useEffect(() => {
         if (canvasRef.current && houses.length > 0) {
@@ -230,34 +271,49 @@ export default function Home() {
             <Navbar setPageName={(e) => setPageName(e)}></Navbar>
             <div style={{ position: 'relative' }}>
                 <canvas ref={canvasRef} style={{ display: 'block' }} onClick={handleCanvasClick}></canvas>
-                {/* Right top bar for path, distance, and controls */}
+                {/* Draggable control panel */}
                 <div style={{
                     position: 'absolute',
-                    top: '10px',
-                    right: '10px',
+                    left: `${panelPosition.x}px`,
+                    top: `${panelPosition.y}px`,
                     background: 'white',
-                    padding: '10px',
+                    padding: '0 10px 10px 10px',
                     border: '1px solid black',
-                    zIndex: 10
-                }}>
-                    <p>Current Path: {currentPath.map(i => i+1).join(' -> ')} {currentPath[0]+1}</p>
-                    <p>Total Distance: {currentDistance.toFixed(2)}</p>
-                    <p>Temperature: {temperature.toFixed(2)}</p>
-                    <p>Start Point: {startPoint !== null ? startPoint + 1 : 'Not set'}</p>
-                    <div style={{ marginTop: '10px' }}>
-                        <label>Iteration Speed (ms): </label>
-                        <input
-                            type="range"
-                            min="1"
-                            max="5000"
-                            step="1"
-                            value={iterationSpeed}
-                            onChange={handleSpeedChange}
-                            style={{ width: '100%' }}
-                        />
-                        <span>{iterationSpeed} ms</span>
+                    zIndex: 10,
+                    userSelect: 'none'
+                }} onMouseDown={handleMouseDown}>
+                    <div
+                        className="draggable-navbar"
+                        style={{
+                            background: '#4a4a4a',
+                            color: 'white',
+                            padding: '5px',
+                            textAlign: 'center',
+                            cursor: isDragging ? 'grabbing' : 'grab'
+                        }}
+                    >
+                        Control Panel
                     </div>
-                    <button onClick={initialize} style={{ marginTop: '10px' }}>Reset and Randomize</button>
+                    <div style={{ marginTop: '10px' }}>
+                        <p>Current Path: {currentPath.map(i => i+1).join(' -> ')} -&gt; {currentPath[0]+1}</p>
+                        <p>Total Distance: {currentDistance.toFixed(2)}</p>
+                        <p>Temperature: {temperature.toFixed(2)}</p>
+                        <p>Start Point: {startPoint !== null ? startPoint + 1 : 'Not set'}</p>
+                        <div style={{ marginTop: '10px' }}>
+                            <label>Iteration Speed (ms): </label>
+                            <input
+                                type="range"
+                                min="1"
+                                max="2000"
+                                step="1"
+                                value={iterationSpeed}
+                                onChange={handleSpeedChange}
+                                style={{ width: '100%' }}
+                            />
+                            <span>{iterationSpeed} ms</span>
+                        </div>
+                        <button onClick={initialize} style={{ marginTop: '10px' }} className=" border-2 border-gray-500 rounded-2xl shadow-2xl p-3 hover:bg-gray-200 ease-in-out duration-200">Reset and Randomize</button>
+                    </div>
                 </div>
             </div>
         </>
