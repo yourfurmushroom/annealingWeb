@@ -1,17 +1,10 @@
 'use client'
 /* eslint-disable */
 import React, { startTransition, useActionState, useEffect, useState } from "react";
-import Navbar from "./Component/Navbar";
+import Navbar from "../Navbar";
 import ShiftArea from "./Component/ShiftArea";
 import AttributePanel from "./Component/AttributePanel";
 import {useRouter}  from 'next/navigation';
-
-async function Dummy(item: string): Promise<string> {
-    console.log(item)
-    return new Promise((resolve) => {
-        setTimeout(() => resolve('[{"name":"aaa","status":["上班","休息"]},{"name":"bbb","status":["上班","上班"]}]'), 10000);
-    });
-}
 
 interface WorkerData {
     name: string;
@@ -19,25 +12,9 @@ interface WorkerData {
 }
 
 export default function Home() {
-    const router = useRouter();
-    const [pageName, setPageName, isLoaded] = useActionState((prev: string, nextPage: string) => {
-        return nextPage
-    }, 'Dashboard')
-    useEffect(()=>{
-        console.log(pageName)
-        if(pageName === "Dashboard")
-        {
-            router.push("/dashboard")
-        }
-        else if(pageName==="Digital")
-        {
-            router.push("/digitalAnnealing")
-        }
-        else if(pageName==="TSP")
-        {
-            router.push("/TSP")
-        }
-    },[pageName])
+   
+    
+    
     const [row, setRow] = useState<number>(0)
     const [column, setColumn] = useState<number>(30)
     const [name, setName] = useState<string>("untitled")
@@ -45,9 +22,21 @@ export default function Home() {
 
 
     const [returnData, toWS, isPending] = useActionState(async (prev: string, operation: string) => {
-        const res = await Dummy(operation);
-        return res;
-    }, '[{"name":"aaa","status":["上班","休息"]},{"name":"bbb","status":["上班","上班"]}]')
+        const res=await fetch('api/GetData', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({message:{ ...JSON.parse(operation),schedulename:name,user:"a"}}),
+      });
+     const data = await res.json();
+    console.log(data)
+    console.log(data['data'])
+    // const tempdata=JSON.parse('[{"name":"aaa","status":["上班","休息"]},{"name":"bbb","status":["上班","上班"]}]')
+    setRow(data['data'].length)
+    setColumn(data['data'][0]['status'].length)
+        return JSON.stringify(data['data']);
+    }, '[]')
 
     const GenerateWorkerData = (returnData: string) => {
         let parsed: WorkerData[];
@@ -146,9 +135,7 @@ export default function Home() {
 
     return (
         <>
-            <div>
-                <Navbar setPageName={(e: string) => setPageName(e)}></Navbar>
-            </div>
+            
             <div className=" w-full flex gap-x-20 bg-gray-100">
                 {isPending && (
                     <div className="fixed top-[5vh] left-0 w-full h-full bg-[rgba(0,0,0,0.7)] z-[100] flex items-center justify-center">

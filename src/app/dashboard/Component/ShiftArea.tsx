@@ -33,9 +33,9 @@ export default function ShiftArea({ name, data, column, toWs, gridStatus, setGri
 
 
 
-    const SendToWs = (type: string) => {
+    const SendToWs = (action: string) => {
         console.log(JSON.stringify(data))
-        toWs(JSON.stringify({ type: type, data: data }));
+        toWs(JSON.stringify({ action: action, data: data }));
     }
 
 

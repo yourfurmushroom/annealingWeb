@@ -1,28 +1,17 @@
 'use client'
 /* eslint-disable */
-import React, { useActionState, useEffect, useRef } from "react";
-import Navbar from "../dashboard/Component/Navbar";
+import React, { useActionState, useEffect, useRef, useState } from "react";
+import Navbar from "../Navbar";
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const router = useRouter();
-    const [pageName, setPageName, isLoaded] = useActionState((prev: string, nextPage: string) => {
-        return nextPage
-    }, 'Digital')
-    useEffect(() => {
-        console.log(pageName)
-        if (pageName === "Dashboard") {
-            router.push("/dashboard")
-        }
-        else if (pageName === "Digital") {
-            router.push("/digitalAnnealing")
-        }
-        else if(pageName==="TSP")
-        {
-            router.push("/TSP")
-        }
-    }, [pageName])
+    const [progress, setProgress] = useState<number>(0); // 儲存載入進度
+    const [isUnityLoaded, setIsUnityLoaded] = useState<boolean>(false); // 追蹤 Unity 是否載入完成
+
+  
+
     useEffect(() => {
         const loadUnity = async () => {
             const buildUrl = "/zihui/digitalAnnealing/Build";
@@ -46,11 +35,14 @@ export default function Home() {
             script.onload = () => {
                 // @ts-ignore
                 createUnityInstance(canvasRef.current, config, (progress: number) => {
+                    setProgress(progress); // 更新進度
                     console.log(`Loading: ${Math.round(progress * 100)}%`);
                 }).then((unityInstance: any) => {
                     console.log("Unity loaded!");
+                    setIsUnityLoaded(true); // 標記 Unity 載入完成
                 }).catch((err: any) => {
                     console.error("Unity error:", err);
+                    setIsUnityLoaded(true); // 即使出錯也隱藏進度條
                 });
             };
             document.body.appendChild(script);
@@ -61,14 +53,51 @@ export default function Home() {
 
     return (
         <>
-            <Navbar setPageName={(e) => setPageName(e)}></Navbar>
-            <div id="unity-container" className="unity-desktop">
+            <div id="unity-container" className="unity-desktop" style={{ position: 'relative' }}>
+                {!isUnityLoaded && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            background: 'rgba(0, 0, 0, 0.7)',
+                            color: 'white',
+                            zIndex: 10,
+                        }}
+                    >
+                        <p>Loading Unity: {Math.round(progress * 100)}%</p>
+                        <div
+                            style={{
+                                width: '50%',
+                                height: '20px',
+                                background: '#ccc',
+                                borderRadius: '10px',
+                                overflow: 'hidden',
+                            }}
+                        >
+                            <div
+                                style={{
+                                    width: `${progress * 100}%`,
+                                    height: '100%',
+                                    background: '#4caf50',
+                                    transition: 'width 0.3s ease-in-out',
+                                }}
+                            ></div>
+                        </div>
+                    </div>
+                )}
                 <canvas
                     ref={canvasRef}
                     id="unity-canvas"
                     width={1024}
                     height={768}
-                    style={{ background: "#231F20" }}
+                    style={{ background: "#231F20", display: isUnityLoaded ? 'block' : 'none' }}
                     tabIndex={-1}
                 ></canvas>
             </div>

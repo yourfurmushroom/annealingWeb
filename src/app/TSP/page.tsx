@@ -1,70 +1,60 @@
 'use client'
 /* eslint-disable */
 import React, { useActionState, useEffect, useRef, useState } from "react";
-import Navbar from "../dashboard/Component/Navbar";
+import Navbar from "../Navbar";
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const router = useRouter();
-    const [pageName, setPageName, isLoaded] = useActionState((prev: string, nextPage: string) => {
-        return nextPage
-    }, 'TSP')
-    useEffect(() => {
-        console.log(pageName)
-        if (pageName === "Dashboard") {
-            router.push("/dashboard")
-        }
-        else if (pageName === "Digital") {
-            router.push("/digitalAnnealing")
-        }
-        else if(pageName==="TSP")
-        {
-            router.push("/TSP")
-        }
-    }, [pageName])
-
-    // State for houses positions (5 houses)
-    const [houses, setHouses] = useState<{x: number, y: number}[]>([]);
-    // State for current path (array of indices, e.g., [0,1,2,3,4])
+    const [numNodes, setNumNodes] = useState<number>(5);
+    const [houses, setHouses] = useState<{x: number, y: number, image: string}[]>([]);
     const [currentPath, setCurrentPath] = useState<number[]>([]);
-    // State for current distance
     const [currentDistance, setCurrentDistance] = useState<number>(0);
-    // Distances matrix
     const [distances, setDistances] = useState<number[][]>([]);
-    // State for iteration speed (in milliseconds)
-    const [iterationSpeed, setIterationSpeed] = useState<number>(500); // Default 2 seconds
-    // State for selected starting point (null if not set)
+    const [iterationSpeed, setIterationSpeed] = useState<number>(500);
     const [startPoint, setStartPoint] = useState<number | null>(null);
-    // State for panel position and dragging
     const [panelPosition, setPanelPosition] = useState<{x: number, y: number}>({ x: 10, y: 10 });
     const [isDraggingPanel, setIsDraggingPanel] = useState<boolean>(false);
     const [dragOffset, setDragOffset] = useState<{x: number, y: number}>({ x: 0, y: 0 });
-    // State for dragging houses
     const [draggingHouse, setDraggingHouse] = useState<number | null>(null);
-
-    // Simulated Annealing parameters
+    const [imagesLoaded, setImagesLoaded] = useState<Map<number, HTMLImageElement>>(new Map());
     const initialTemp = 1000;
     const coolingRate = 0.995;
     const [temperature, setTemperature] = useState(initialTemp);
+    const numImages = 10; // 調整為實際圖片數量
+    const imageSize = 50;
 
-    // Function to initialize or reinitialize
-    const initialize = () => {
+    const loadImagesAndInitialize = async () => {
+        const imageMap = new Map<number, HTMLImageElement>();
+        for (let i = 1; i <= numImages; i++) {
+            const img = new Image();
+            img.src = `/zihui/images/${i}.png`;
+            await new Promise((resolve) => {
+                img.onload = resolve;
+                img.onerror = () => {
+                    console.error(`Failed to load image: /zihui/images/${i}.png`);
+                    resolve(null);
+                };
+            });
+            imageMap.set(i, img);
+        }
+        setImagesLoaded(imageMap);
+
         if (canvasRef.current) {
             const canvas = canvasRef.current;
             const width = window.innerWidth;
-            const height = window.innerHeight - 50; // Adjust for navbar or other elements
+            const height = window.innerHeight - 50;
             canvas.width = width;
             canvas.height = height;
 
-            // Generate 5 random houses
-            const newHouses = Array.from({length: 5}, () => ({
+            const newHouses = Array.from({length: numNodes}, () => ({
                 x: Math.random() * (width - 100) + 50,
-                y: Math.random() * (height - 100) + 50
+                y: Math.random() * (height - 100) + 50,
+                image: `zihui/images/${Math.floor(Math.random() * numImages) + 1}.png`
             }));
             setHouses(newHouses);
 
-            // Compute distances (Euclidean, rounded to integers)
             const newDistances = newHouses.map((h1, i) =>
                 newHouses.map((h2, j) => {
                     if (i === j) return 0;
@@ -73,30 +63,32 @@ export default function Home() {
             );
             setDistances(newDistances);
 
-            // Initial random path (permutation of 0 to 4)
-            let initialPath = [0,1,2,3,4].sort(() => Math.random() - 0.5);
-            // If startPoint is set, ensure it is first
-            if (startPoint !== null) {
+            let initialPath = Array.from({length: numNodes}, (_, i) => i).sort(() => Math.random() - 0.5);
+            if (startPoint !== null && startPoint < numNodes) {
                 const idx = initialPath.indexOf(startPoint);
                 if (idx !== -1) {
                     initialPath.splice(idx, 1);
                     initialPath = [startPoint, ...initialPath];
                 }
+            } else if (startPoint !== null) {
+                setStartPoint(null);
             }
             setCurrentPath(initialPath);
             setCurrentDistance(calculatePathDistance(initialPath, newDistances));
-
-            // Reset temperature
             setTemperature(initialTemp);
         }
     };
 
-    // Generate random houses and initial path on mount
     useEffect(() => {
-        initialize();
-    }, []);
+        loadImagesAndInitialize();
+    }, [numNodes]);
 
-    // Function to calculate path distance
+    const initialize = () => {
+        setImagesLoaded(new Map());
+        setHouses([]);
+        loadImagesAndInitialize();
+    };
+
     const calculatePathDistance = (path: number[], dists: number[][]): number => {
         let dist = 0;
         for (let i = 0; i < path.length; i++) {
@@ -105,43 +97,34 @@ export default function Home() {
         return dist;
     };
 
-    // Perform one SA iteration
     const performSAIteration = () => {
         if (currentPath.length === 0 || distances.length === 0) return;
 
-        // Copy current path
         let newPath = [...currentPath];
-
-        // Swap two random cities, excluding the start point if set
-        let idx1 = startPoint !== null ? Math.floor(Math.random() * 4) + 1 : Math.floor(Math.random() * 5);
-        let idx2 = startPoint !== null ? Math.floor(Math.random() * 4) + 1 : Math.floor(Math.random() * 5);
-        while (idx1 === idx2) idx2 = startPoint !== null ? Math.floor(Math.random() * 4) + 1 : Math.floor(Math.random() * 5);
+        let idx1 = startPoint !== null ? Math.floor(Math.random() * (numNodes - 1)) + 1 : Math.floor(Math.random() * numNodes);
+        let idx2 = startPoint !== null ? Math.floor(Math.random() * (numNodes - 1)) + 1 : Math.floor(Math.random() * numNodes);
+        while (idx1 === idx2) idx2 = startPoint !== null ? Math.floor(Math.random() * (numNodes - 1)) + 1 : Math.floor(Math.random() * numNodes);
         [newPath[idx1], newPath[idx2]] = [newPath[idx2], newPath[idx1]];
 
-        // Calculate deltas
         const newDist = calculatePathDistance(newPath, distances);
         const delta = newDist - currentDistance;
 
-        // Accept if better or with probability
         if (delta < 0 || Math.random() < Math.exp(-delta / temperature)) {
             setCurrentPath(newPath);
             setCurrentDistance(newDist);
         }
 
-        // Cool down
         setTemperature(prev => prev * coolingRate);
     };
 
-    // Run iteration based on iterationSpeed
     useEffect(() => {
         const interval = setInterval(() => {
             performSAIteration();
         }, iterationSpeed);
 
         return () => clearInterval(interval);
-    }, [currentPath, currentDistance, temperature, distances, iterationSpeed, startPoint]);
+    }, [currentPath, currentDistance, temperature, distances, iterationSpeed, startPoint, numNodes]);
 
-    // Handle canvas mouse down to start dragging a house or set start point
     const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
         if (canvasRef.current) {
             const canvas = canvasRef.current;
@@ -149,12 +132,12 @@ export default function Home() {
             const clickX = event.clientX - rect.left;
             const clickY = event.clientY - rect.top;
 
-            // Find closest house
             let closestIdx = -1;
             let minDist = Infinity;
             houses.forEach((house, idx) => {
+                if (!house) return;
                 const dist = Math.sqrt(Math.pow(house.x - clickX, 2) + Math.pow(house.y - clickY, 2));
-                if (dist < minDist && dist < 20) { // Threshold to ensure click is near a house
+                if (dist < minDist && dist < (imageSize / 2 + 10)) {
                     minDist = dist;
                     closestIdx = idx;
                 }
@@ -170,17 +153,16 @@ export default function Home() {
         }
     };
 
-    // Handle canvas mouse move to drag house
     const handleCanvasMouseMove = (event: MouseEvent) => {
-        if (draggingHouse !== null && canvasRef.current) {
+        if (draggingHouse !== null && canvasRef.current && houses[draggingHouse]) {
             const canvas = canvasRef.current;
             const rect = canvas.getBoundingClientRect();
             const mouseX = event.clientX - rect.left;
             const mouseY = event.clientY - rect.top;
 
-            // Update house position
             const newHouses = [...houses];
             newHouses[draggingHouse] = {
+                ...newHouses[draggingHouse],
                 x: mouseX - dragOffset.x,
                 y: mouseY - dragOffset.y
             };
@@ -188,10 +170,8 @@ export default function Home() {
         }
     };
 
-    // Handle canvas mouse up to stop dragging and recalculate
     const handleCanvasMouseUp = () => {
-        if (draggingHouse !== null) {
-            // Recalculate distances based on new house positions
+        if (draggingHouse !== null && houses[draggingHouse]) {
             const newDistances = houses.map((h1, i) =>
                 houses.map((h2, j) => {
                     if (i === j) return 0;
@@ -200,8 +180,7 @@ export default function Home() {
             );
             setDistances(newDistances);
 
-            // Generate new random path, respecting startPoint
-            let newPath = [0,1,2,3,4].sort(() => Math.random() - 0.5);
+            let newPath = Array.from({length: numNodes}, (_, i) => i).sort(() => Math.random() - 0.5);
             if (startPoint !== null) {
                 const idx = newPath.indexOf(startPoint);
                 if (idx !== -1) {
@@ -211,15 +190,11 @@ export default function Home() {
             }
             setCurrentPath(newPath);
             setCurrentDistance(calculatePathDistance(newPath, newDistances));
-
-            // Reset temperature
             setTemperature(initialTemp);
-
             setDraggingHouse(null);
         }
     };
 
-    // Handle canvas click to set starting point (only if not dragging)
     const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
         if (draggingHouse === null && canvasRef.current) {
             const canvas = canvasRef.current;
@@ -227,12 +202,12 @@ export default function Home() {
             const clickX = event.clientX - rect.left;
             const clickY = event.clientY - rect.top;
 
-            // Find closest house
             let closestIdx = -1;
             let minDist = Infinity;
             houses.forEach((house, idx) => {
+                if (!house) return;
                 const dist = Math.sqrt(Math.pow(house.x - clickX, 2) + Math.pow(house.y - clickY, 2));
-                if (dist < minDist && dist < 20) { // Threshold to ensure click is near a house
+                if (dist < minDist && dist < (imageSize / 2 + 10)) {
                     minDist = dist;
                     closestIdx = idx;
                 }
@@ -240,8 +215,7 @@ export default function Home() {
 
             if (closestIdx !== -1) {
                 setStartPoint(closestIdx);
-                // Reinitialize path with new start
-                const newPath = [closestIdx, ...[0,1,2,3,4].filter(i => i !== closestIdx).sort(() => Math.random() - 0.5)];
+                const newPath = [closestIdx, ...Array.from({length: numNodes}, (_, i) => i).filter(i => i !== closestIdx).sort(() => Math.random() - 0.5)];
                 setCurrentPath(newPath);
                 setCurrentDistance(calculatePathDistance(newPath, distances));
                 setTemperature(initialTemp);
@@ -249,7 +223,6 @@ export default function Home() {
         }
     };
 
-    // Add global mouse move and up listeners for house dragging
     useEffect(() => {
         window.addEventListener('mousemove', handleCanvasMouseMove);
         window.addEventListener('mouseup', handleCanvasMouseUp);
@@ -257,11 +230,9 @@ export default function Home() {
             window.removeEventListener('mousemove', handleCanvasMouseMove);
             window.removeEventListener('mouseup', handleCanvasMouseUp);
         };
-    }, [draggingHouse, dragOffset, houses, distances, startPoint]);
+    }, [draggingHouse, dragOffset, houses, distances, startPoint, numNodes]);
 
-    // Handle mouse down on panel navbar to start dragging
     const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
-        // Only start dragging if the target is the navbar
         if ((event.target as HTMLElement).className.includes('draggable-navbar')) {
             setIsDraggingPanel(true);
             setDragOffset({
@@ -271,7 +242,6 @@ export default function Home() {
         }
     };
 
-    // Handle mouse move to update panel position
     const handleMouseMove = (event: MouseEvent) => {
         if (isDraggingPanel) {
             setPanelPosition({
@@ -281,12 +251,10 @@ export default function Home() {
         }
     };
 
-    // Handle mouse up to stop dragging panel
     const handleMouseUp = () => {
         setIsDraggingPanel(false);
     };
 
-    // Add global mouse move and up listeners for panel dragging
     useEffect(() => {
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp);
@@ -296,7 +264,6 @@ export default function Home() {
         };
     }, [isDraggingPanel, dragOffset]);
 
-    // Draw on canvas whenever houses, path, or distances change
     useEffect(() => {
         if (canvasRef.current && houses.length > 0) {
             const canvas = canvasRef.current;
@@ -305,63 +272,92 @@ export default function Home() {
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw all connections in gray
-            ctx.strokeStyle = 'gray';
-            ctx.lineWidth = 1;
-            for (let i = 0; i < 5; i++) {
-                for (let j = i + 1; j < 5; j++) {
-                    ctx.beginPath();
-                    ctx.moveTo(houses[i].x, houses[i].y);
-                    ctx.lineTo(houses[j].x, houses[j].y);
-                    ctx.stroke();
+            // Only draw gray connections if numNodes <= 10
+            if (numNodes <= 8) {
+                ctx.strokeStyle = 'gray';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < numNodes; i++) {
+                    for (let j = i + 1; j < numNodes; j++) {
+                        if (!houses[i] || !houses[j]) continue;
+                        ctx.beginPath();
+                        ctx.moveTo(houses[i].x, houses[i].y);
+                        ctx.lineTo(houses[j].x, houses[j].y);
+                        ctx.stroke();
 
-                    // Draw distance in middle
-                    const midX = (houses[i].x + houses[j].x) / 2;
-                    const midY = (houses[i].y + houses[j].y) / 2;
-                    ctx.fillStyle = 'black';
-                    ctx.font = '12px Arial';
-                    ctx.fillText(distances[i][j].toString(), midX, midY);
+                        const midX = (houses[i].x + houses[j].x) / 2;
+                        const midY = (houses[i].y + houses[j].y) / 2;
+                        ctx.fillStyle = 'black';
+                        ctx.font = '12px Arial';
+                        ctx.fillText(distances[i][j].toString(), midX, midY);
+                    }
                 }
             }
 
-            // Draw selected path in red
+            // Always draw selected path in red
             ctx.strokeStyle = 'red';
             ctx.lineWidth = 3;
             for (let i = 0; i < currentPath.length; i++) {
                 const from = currentPath[i];
                 const to = currentPath[(i + 1) % currentPath.length];
+                if (!houses[from] || !houses[to]) continue;
                 ctx.beginPath();
                 ctx.moveTo(houses[from].x, houses[from].y);
                 ctx.lineTo(houses[to].x, houses[to].y);
                 ctx.stroke();
             }
 
-            // Draw houses as blue circles, highlight start point in green, dragging house in yellow
-            houses.forEach((house, idx) => {
-                ctx.fillStyle = idx === startPoint ? 'green' : (idx === draggingHouse ? 'yellow' : 'blue');
-                ctx.beginPath();
-                ctx.arc(house.x, house.y, 10, 0, 2 * Math.PI);
-                ctx.fill();
-                // Label house number
-                ctx.fillStyle = 'white';
-                ctx.font = '12px Arial';
-                ctx.fillText((idx + 1).toString(), house.x - 5, house.y + 5);
-            });
-        }
-    }, [houses, currentPath, distances, startPoint, draggingHouse]);
+            const drawImages = () => {
+                houses.forEach((house, idx) => {
+                    if (!house || typeof house.x === 'undefined' || typeof house.y === 'undefined') {
+                        console.warn(`House at index ${idx} is invalid:`, house);
+                        return;
+                    }
+                    const imageIndex = parseInt(house.image.match(/\/images\/(\d+)\.png/)?.[1] || '1');
+                    const img = imagesLoaded.get(imageIndex);
+                    if (img && img.complete && img.naturalWidth !== 0) {
+                        ctx.drawImage(img, house.x - imageSize / 2, house.y - imageSize / 2, imageSize, imageSize);
+                    } else {
+                        ctx.fillStyle = idx === startPoint ? 'green' : (idx === draggingHouse ? 'yellow' : 'blue');
+                        ctx.beginPath();
+                        ctx.arc(house.x, house.y, imageSize / 2, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                    ctx.fillStyle = 'black';
+                    ctx.font = '12px Arial';
+                    ctx.fillText((idx + 1).toString(), house.x - 5, house.y + imageSize / 2 + 10);
 
-    // Function to handle iteration speed change
+                    if (idx === startPoint) {
+                        ctx.strokeStyle = 'green';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(house.x - imageSize / 2, house.y - imageSize / 2, imageSize, imageSize);
+                    } else if (idx === draggingHouse) {
+                        ctx.strokeStyle = 'yellow';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(house.x - imageSize / 2, house.y - imageSize / 2, imageSize, imageSize);
+                    }
+                });
+            };
+            drawImages();
+        }
+    }, [houses, currentPath, distances, startPoint, draggingHouse, numNodes]);
+
     const handleSpeedChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const newSpeed = parseInt(event.target.value);
         setIterationSpeed(newSpeed);
     };
 
+    const handleNumNodesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const newNum = parseInt(event.target.value);
+        setNumNodes(newNum);
+        if (startPoint !== null && startPoint >= newNum) {
+            setStartPoint(null);
+        }
+    };
+
     return (
         <>
-            <Navbar setPageName={(e) => setPageName(e)}></Navbar>
             <div style={{ position: 'relative' }}>
                 <canvas ref={canvasRef} style={{ display: 'block' }} onClick={handleCanvasClick} onMouseDown={handleCanvasMouseDown}></canvas>
-                {/* Draggable control panel */}
                 <div style={{
                     position: 'absolute',
                     left: `${panelPosition.x}px`,
@@ -402,7 +398,20 @@ export default function Home() {
                             />
                             <span>{iterationSpeed} ms</span>
                         </div>
-                        <button onClick={initialize} style={{ marginTop: '10px' }} className=" border-2 border-gray-500 rounded-2xl shadow-2xl p-3 hover:bg-gray-200 ease-in-out duration-200">Reset and Randomize</button>
+                        <div style={{ marginTop: '10px' }}>
+                            <label>Number of Nodes: </label>
+                            <input
+                                type="range"
+                                min="5"
+                                max="20"
+                                step="1"
+                                value={numNodes}
+                                onChange={handleNumNodesChange}
+                                style={{ width: '100%' }}
+                            />
+                            <span>{numNodes}</span>
+                        </div>
+                        <button onClick={initialize} style={{ marginTop: '10px' }} className="border-2 border-gray-500 rounded-2xl shadow-2xl p-3 hover:bg-gray-200 ease-in-out duration-200">Reset and Randomize</button>
                     </div>
                 </div>
             </div>
