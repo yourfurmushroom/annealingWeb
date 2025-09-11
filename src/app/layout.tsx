@@ -44,8 +44,9 @@ export default function RootLayout({
     else if (pageName === "Login") {
       router.push("/login")
     }
-    // TODO
-    // Register
+    else if (pageName === "Register") {
+      router.push("/register")
+    }
   }, [pageName])
   return (
     <html lang="en">

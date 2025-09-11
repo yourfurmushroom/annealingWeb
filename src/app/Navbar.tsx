@@ -22,9 +22,7 @@ export default function Navbar({ setPageName }: { setPageName: (s: string) => vo
                         </div>
                         <div className=' space-x-4'>
                             <Button Action={() => setPageName("Login")} className="" title="登入" disabled={false} />
-                            <Button Action={() => alert("asd")} className="" title="註冊" disabled={false}></Button>
-                            {/* TODO */}
-                            {/* Register */}
+                            <Button Action={() => setPageName("Register")} className="" title="註冊" disabled={false} />
                         </div>
                     </div>
                 </div>
