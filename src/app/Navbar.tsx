@@ -21,8 +21,10 @@ export default function Navbar({ setPageName }: { setPageName: (s: string) => vo
                             <Button Action={() => setPageName("TSP")} className="text-gray-500 text-[20px]" title="TSP問題" disabled={false} />
                         </div>
                         <div className=' space-x-4'>
-                            <Button Action={() => alert("asd")} className="" title="登入" disabled={false}></Button>
+                            <Button Action={() => setPageName("Login")} className="" title="登入" disabled={false} />
                             <Button Action={() => alert("asd")} className="" title="註冊" disabled={false}></Button>
+                            {/* TODO */}
+                            {/* Register */}
                         </div>
                     </div>
                 </div>
