@@ -9,6 +9,14 @@ interface InputFormProps {
 }
 
 function InputForm({ name, icon, value, onChange, className }: InputFormProps) {
+  let columnName = "";
+
+  if(name === "Username"){
+    columnName = "使用者名稱"
+  } else {
+    columnName = "密碼"
+  }
+
   return (
     <div className={`grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 ${className}`}>
       <div className="sm:col-span-4 lg:col-span-6">
@@ -16,7 +24,7 @@ function InputForm({ name, icon, value, onChange, className }: InputFormProps) {
           htmlFor={name}
           className="block text-sm/6 text-gray-600 font-semibold"
         >
-          {name}
+          {name.toLowerCase()==("confirm password") ? `${columnName}確認` : `${columnName}`}
         </label>
         <div className="mt-2">
           <div
@@ -33,7 +41,7 @@ function InputForm({ name, icon, value, onChange, className }: InputFormProps) {
               id={name}
               type={name.toLowerCase().includes("password") ? "password" : "text"}
               name={name}
-              placeholder={`Your ${name}`}
+              placeholder={name.toLowerCase()==("confirm password") ? `請再次輸入${columnName}` : `請輸入${columnName}`}
               className="block min-w-0 grow bg-white py-1.5 pr-3 pl-1 
                          text-base text-gray-900 placeholder:text-gray-400 
                          focus:outline-none sm:text-sm/6"
@@ -109,7 +117,7 @@ function LoginForm() {
                      transition-transform duration-150 ease-in-out
                      active:scale-105"
         >
-          Register
+          註冊帳號
         </button>
       </div>
     </>

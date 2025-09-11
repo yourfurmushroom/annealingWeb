@@ -16,7 +16,7 @@ function RightLoginPart() {
   return (
     <div className="w-2/5 h-full bg-white flex items-center flex-col justify-start p-8 pt-[15vh] mb-20">
       <p className="text-indigo-500 text-[23px] font-bold text-center">
-        USER LOGIN
+        使用者登入
       </p>
       <InputForm />
     </div>

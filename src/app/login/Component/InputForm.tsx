@@ -4,6 +4,14 @@ interface InputFormProps {
 }
 
 function InputForm({ name, icon }: InputFormProps) {
+  let columnName = "";
+
+  if(name === "Username"){
+    columnName = "使用者名稱"
+  } else {
+    columnName = "密碼"
+  }
+
   return (
     <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
       <div className="sm:col-span-4 lg:col-span-6">
@@ -11,7 +19,7 @@ function InputForm({ name, icon }: InputFormProps) {
           htmlFor={name}
           className="block text-sm/6 text-gray-600 font-semibold"
         >
-          {name}
+          {columnName}
         </label>
         <div className="mt-2">
           <div
@@ -28,7 +36,7 @@ function InputForm({ name, icon }: InputFormProps) {
               id={name}
               type={name.toLowerCase() === "password" ? "password" : "text"}
               name={name}
-              placeholder={`Your ${name}`}
+              placeholder={`請輸入${columnName}`}
               className="block min-w-0 grow bg-white py-1.5 pr-3 pl-1 
                            text-base text-gray-900 placeholder:text-gray-400 
                            focus:outline-none sm:text-sm/6"
@@ -88,7 +96,7 @@ function LoginForm() {
                      transition-transform duration-150 ease-in-out
                      active:scale-105"
         >
-          Login
+          登入
         </button>
       </div>
     </>
