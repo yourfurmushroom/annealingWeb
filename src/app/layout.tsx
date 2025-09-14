@@ -41,6 +41,12 @@ export default function RootLayout({
     else if (pageName === "TSP") {
       router.push("/TSP")
     }
+    else if (pageName === "Login") {
+      router.push("/login")
+    }
+    else if (pageName === "Register") {
+      router.push("/register")
+    }
   }, [pageName])
   return (
     <html lang="en">
