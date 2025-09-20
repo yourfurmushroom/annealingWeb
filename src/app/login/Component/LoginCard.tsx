@@ -1,4 +1,4 @@
-import InputForm from "./InputForm";
+import LoginForm from "./InputForm";
 
 function LeftIntroPart() {
   return (
@@ -18,7 +18,7 @@ function RightLoginPart() {
       <p className="text-indigo-500 text-[23px] font-bold text-center">
         使用者登入
       </p>
-      <InputForm />
+      <LoginForm />
     </div>
   );
 }

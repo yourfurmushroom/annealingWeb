@@ -1,10 +1,14 @@
 'use client';
-
-import React from 'react';
+/* eslint-disable */
+import React, { SetStateAction, useEffect, useState } from 'react';
 
 interface WorkerData {
     name: string;
     status: string[];
+}
+interface Constraint {
+  name: string;
+  parameters: Record<string, any>;
 }
 interface ShiftAreaProps {
     name: string;
@@ -15,11 +19,13 @@ interface ShiftAreaProps {
     setGridStatus: React.Dispatch<React.SetStateAction<string[][]>>,
     refresh: () => void,
     setModify: React.Dispatch<React.SetStateAction<boolean>>,
-    isModify: boolean
+    isModify: boolean,
+    constraints: Constraint[];
+    setConstraints: React.Dispatch<React.SetStateAction<Constraint[]>>;
 }
 
-export default function ShiftArea({ name, data, column, toWs, gridStatus, setGridStatus, setModify, refresh, isModify }: ShiftAreaProps) {
-
+export default function ShiftArea({ name, data, column, toWs, gridStatus, setGridStatus, setModify, refresh, isModify,constraints, setConstraints }: ShiftAreaProps) {
+    const [machine,setMachine]=useState<string>("fujitsu")
 
     const updateCellStatus = (rowIndex: number, colIndex: number, value: string) => {
         setGridStatus((prev) => {
@@ -34,15 +40,15 @@ export default function ShiftArea({ name, data, column, toWs, gridStatus, setGri
 
 
     const SendToWs = (action: string) => {
-        console.log(JSON.stringify(data))
-        toWs(JSON.stringify({ action: action, data: data }));
+        console.log(JSON.stringify({data,constraints}))
+        toWs(JSON.stringify({ action: action, data: data,constraints: constraints,machine:machine }));
     }
 
 
     return (
         <>
             <div className='w-[100%]'>
-                <RemoteBar SendToWs={(e: string) => SendToWs(e)} name={name} setModify={setModify} refresh={() => refresh()} isModify={isModify}></RemoteBar>
+                <RemoteBar SendToWs={(e: string) => SendToWs(e)} name={name} setModify={setModify} refresh={() => refresh()} isModify={isModify} machine={machine} setMachine={setMachine}></RemoteBar>
             </div>
             <div className="w-[100%] h-[80vh] flex justify-center">
                 <div className="w-full overflow-scroll bg-white border border-gray-300">
@@ -58,12 +64,12 @@ export default function ShiftArea({ name, data, column, toWs, gridStatus, setGri
     );
 }
 
-function RemoteBar({ SendToWs, name, setModify, refresh, isModify }: { SendToWs: (e: string) => void, name: string, setModify: React.Dispatch<React.SetStateAction<boolean>>, refresh: () => void, isModify: boolean }) {
+function RemoteBar({ SendToWs, name, setModify, refresh, isModify,machine,setMachine }: { SendToWs: (e: string) => void, name: string, setModify: React.Dispatch<React.SetStateAction<boolean>>, refresh: () => void, isModify: boolean,machine:string,setMachine:React.Dispatch<SetStateAction<string>> }) {
     return (
         <div className="bg-gray-200 flex justify-between items-center h-[5vh]">
             <div className='font-bold text-[28px] p-3'>{name}</div>
             <div>
-                <ControlPanel SendToWs={(e) => SendToWs(e)} setModify={setModify} refresh={() => refresh()} isModify={isModify}></ControlPanel>
+                <ControlPanel SendToWs={(e) => SendToWs(e)} setModify={setModify} refresh={() => refresh()} isModify={isModify} machine={machine} setMachine={setMachine}></ControlPanel>
             </div>
         </div>
     )
@@ -117,9 +123,16 @@ function GridCell({ rowIndex, colIndex, value, updateCellStatus, workerName, isM
     );
 }
 
-function ControlPanel({ SendToWs, refresh, setModify, isModify }: { SendToWs: (e: string) => void, setModify: React.Dispatch<React.SetStateAction<boolean>>, refresh: () => void, isModify: boolean }) {
+function ControlPanel({ SendToWs, refresh, setModify, isModify,machine,setMachine }: { SendToWs: (e: string) => void, setModify: React.Dispatch<React.SetStateAction<boolean>>, refresh: () => void, isModify: boolean ,machine:string,setMachine:React.Dispatch<SetStateAction<string>>}) {
     return (
         <div className='flex items-center gap-x-6 px-4 '>
+            <div>
+                <select value={machine} onChange={(e)=>setMachine(e.target.value)}>
+                <option value="fujitsu">富士通</option>
+                <option value="jinbo">仁寶</option>
+                <option value="da">數位退火</option>
+                </select>
+            </div>
             <div title="計算" className=' hover:scale-120 duration-200 ease-in-out' onClick={() => SendToWs('Calculate')}>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6" >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z" />

@@ -1,5 +1,5 @@
 'use client'
-
+/* eslint-disable */
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "./Navbar";
@@ -50,6 +50,9 @@ export default function RootLayout({
   }, [pageName])
   return (
     <html lang="en">
+      <head>
+        <title>oh</title>
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

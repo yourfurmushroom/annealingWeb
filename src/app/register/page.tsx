@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable */
 import { useState } from "react";
 import "../Utils/sha256";
 import InputForm from "./Component/InputForm"

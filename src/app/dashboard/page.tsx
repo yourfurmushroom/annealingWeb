@@ -10,6 +10,10 @@ interface WorkerData {
     name: string;
     status: string[];
 }
+interface Constraint {
+  name: string;
+  parameters: Record<string, any>;
+}
 
 export default function Home() {
    
@@ -19,10 +23,11 @@ export default function Home() {
     const [column, setColumn] = useState<number>(30)
     const [name, setName] = useState<string>("untitled")
     const [isModify, setModify] = useState<boolean>(false)
+    const [constraints, setConstraints] = useState<Constraint[]>([]);
 
 
     const [returnData, toWS, isPending] = useActionState(async (prev: string, operation: string) => {
-        const res=await fetch('api/GetData', {
+        const res=await fetch('http://www.emath.tw/zihui/api/GetData', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -31,12 +36,16 @@ export default function Home() {
       });
      const data = await res.json();
     console.log(data)
-    console.log(data['data'])
+    console.log(data['data']['data'])
+    const parsed: WorkerData[] = data['data']['data'];
     // const tempdata=JSON.parse('[{"name":"aaa","status":["上班","休息"]},{"name":"bbb","status":["上班","上班"]}]')
-    setRow(data['data'].length)
-    setColumn(data['data'][0]['status'].length)
-        return JSON.stringify(data['data']);
+    setRow(parsed.length);
+    setColumn(parsed[0]?.status.length || 0);
+    setGridStatus(parsed.map(worker => [...worker.status]));
+        return JSON.stringify(parsed)
     }, '[]')
+
+    
 
     const GenerateWorkerData = (returnData: string) => {
         let parsed: WorkerData[];
@@ -143,10 +152,10 @@ export default function Home() {
                     </div>
                 )}
                 <div className="w-[50%] mt-5 h-fit ml-20">
-                    <ShiftArea gridStatus={gridStatus} setGridStatus={setGridStatus} isModify={isModify} setModify={setModify} refresh={() => refresh(GenerateWorkerData(returnData))} toWs={(e) => { startTransition(() => { toWS(e) }) }} name={name} column={column} data={GenerateWorkerData(returnData)}></ShiftArea>
+                    <ShiftArea constraints={constraints} setConstraints={setConstraints} gridStatus={gridStatus} setGridStatus={setGridStatus} isModify={isModify} setModify={setModify} refresh={() => refresh(GenerateWorkerData(returnData))} toWs={(e) => { startTransition(() => { toWS(e) }) }} name={name} column={column} data={GenerateWorkerData(returnData)}></ShiftArea>
                 </div>
                 <div className=" w-[100%] mt-5 h-fit">
-                    <AttributePanel gridStatus={gridStatus} setRow={setRow} setColumn={setColumn} row={row} column={column}></AttributePanel>
+                    <AttributePanel constraints={constraints} setConstraints={setConstraints} gridStatus={gridStatus} setRow={setRow} setColumn={setColumn} row={row} column={column}></AttributePanel>
                 </div>
 
             </div>
