@@ -1,155 +1,203 @@
 'use client'
 /* eslint-disable */
-import React, { startTransition, useActionState, useEffect, useState } from "react";
+import React, { useEffect, useState, startTransition } from "react";
 import Navbar from "../Navbar";
 import ShiftArea from "./Component/ShiftArea";
 import AttributePanel from "./Component/AttributePanel";
-import {useRouter}  from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 interface WorkerData {
-    name: string;
-    status: string[];
+  name: string;
+  status: string[];
+}
+interface Constraint {
+  name: string;
+  parameters: Record<string, any>;
 }
 
 export default function Home() {
-   
-    
-    
-    const [row, setRow] = useState<number>(0)
-    const [column, setColumn] = useState<number>(30)
-    const [name, setName] = useState<string>("untitled")
-    const [isModify, setModify] = useState<boolean>(false)
+  const [row, setRow] = useState<number>(0);
+  const [column, setColumn] = useState<number>(30);
+  const [name, setName] = useState<string>("untitled");
+  const [isModify, setModify] = useState<boolean>(false);
+  const [constraints, setConstraints] = useState<Constraint[]>([]);
+  const [gridStatus, setGridStatus] = useState<string[][]>([]);
+  const [isPending, setIsPending] = useState<boolean>(false);
 
+  const [ws, setWs] = useState<WebSocket | null>(null);
 
-    const [returnData, toWS, isPending] = useActionState(async (prev: string, operation: string) => {
-        const res=await fetch('api/GetData', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({message:{ ...JSON.parse(operation),schedulename:name,user:"a"}}),
-      });
-     const data = await res.json();
-    console.log(data)
-    console.log(data['data'])
-    // const tempdata=JSON.parse('[{"name":"aaa","status":["上班","休息"]},{"name":"bbb","status":["上班","上班"]}]')
-    setRow(data['data'].length)
-    setColumn(data['data'][0]['status'].length)
-        return JSON.stringify(data['data']);
-    }, '[]')
+  const [returnData, setReturnData] = useState<string>("[]");
 
-    const GenerateWorkerData = (returnData: string) => {
-        let parsed: WorkerData[];
+  useEffect(() => {
+    // TODO: 換成你的實際 WS URL
+    const socket = new WebSocket(`${window.location.origin.replace(/^http/, 'ws')}/zihui/ws/`);
 
-        try {
-            parsed = JSON.parse(returnData);
-        } catch (error) {
-            console.error('Error parsing JSON data:', error);
-            parsed = [];
-        }
+    socket.onopen = () => {
+      console.log("✅ WebSocket 已連線");
+    };
 
-        if (parsed.length < row) {
-            const toAdd = row - parsed.length;
-            for (let i = 0; i < toAdd; i++) {
-                parsed.push({
-                    name: `Worker ${parsed.length + 1}`,
-                    status: Array(column).fill('上班'),
-                });
-            }
-        } else if (parsed.length > row) {
-            parsed = parsed.slice(0, row);
-        }
+    socket.onmessage = (event) => {
+      setIsPending(false);
+      try {
+        const data = JSON.parse(event.data);
+        console.log("收到 WS:", data);
 
-        parsed = parsed.map((worker) => {
-            const status = [...worker.status];
-            if (status.length > column) {
-                status.length = column;
-            } else if (status.length < column) {
-                status.push(...Array(column - status.length).fill('上班'));
-            }
-            return { ...worker, status };
-        });
-        return parsed
+        const parsed: WorkerData[] = data["data"];
+        setRow(parsed.length);
+        setColumn(parsed[0]?.status.length || 0);
+        setGridStatus(parsed.map((worker) => [...worker.status]));
+
+        // 存起來給 GenerateWorkerData 使用
+        setReturnData(JSON.stringify(parsed));
+      } catch (err) {
+        console.error("WS 解析失敗:", err);
+      }
+    };
+
+    socket.onerror = (err) => {
+      console.error("WebSocket 錯誤:", err);
+    };
+
+    socket.onclose = () => {
+      console.log("❌ WebSocket 已關閉");
+    };
+
+    setWs(socket);
+
+    // 離開頁面時關閉連線
+    return () => {
+      socket.close();
+    };
+  }, []);
+
+  // 發送資料
+  const toWS = (operation: string) => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      setIsPending(true);
+      ws.send(
+        JSON.stringify({
+         ...JSON.parse(operation), schedulename: name, user: "a" ,
+        })
+      );
+    } else {
+      console.warn("WS 尚未連線");
+    }
+  };
+
+  // 保持你的 GenerateWorkerData
+  const GenerateWorkerData = (returnData: string) => {
+    let parsed: WorkerData[];
+
+    try {
+      parsed = JSON.parse(returnData);
+    } catch (error) {
+      console.error("Error parsing JSON data:", error);
+      parsed = [];
     }
 
-    const refresh = (parsed: WorkerData[]) => {
-        const initialStatus = Array(row).fill(null).map(() => Array(column).fill('上班'));
-
-        parsed.forEach((worker, rowIndex) => {
-            if (rowIndex < row) {
-                worker.status.forEach((status, colIndex) => {
-                    if (colIndex < column) {
-                        initialStatus[rowIndex][colIndex] = status;
-                    }
-                });
-            }
+    if (parsed.length < row) {
+      const toAdd = row - parsed.length;
+      for (let i = 0; i < toAdd; i++) {
+        parsed.push({
+          name: `Worker ${parsed.length + 1}`,
+          status: Array(column).fill("上班"),
         });
-
-        setGridStatus(initialStatus)
-
+      }
+    } else if (parsed.length > row) {
+      parsed = parsed.slice(0, row);
     }
 
-    const [gridStatus, setGridStatus] = useState<string[][]>(() => {
-        const parsed: WorkerData[] = GenerateWorkerData(returnData);
-        const initialStatus = Array(row).fill(null).map(() => Array(column).fill('上班'));
+    parsed = parsed.map((worker) => {
+      const status = [...worker.status];
+      if (status.length > column) {
+        status.length = column;
+      } else if (status.length < column) {
+        status.push(...Array(column - status.length).fill("上班"));
+      }
+      return { ...worker, status };
+    });
+    return parsed;
+  };
 
-        parsed.forEach((worker, rowIndex) => {
-            if (rowIndex < row) {
-                worker.status.forEach((status, colIndex) => {
-                    if (colIndex < column) {
-                        initialStatus[rowIndex][colIndex] = status;
-                    }
-                });
-            }
+  const refresh = (parsed: WorkerData[]) => {
+    const initialStatus = Array(row)
+      .fill(null)
+      .map(() => Array(column).fill("上班"));
+
+    parsed.forEach((worker, rowIndex) => {
+      if (rowIndex < row) {
+        worker.status.forEach((status, colIndex) => {
+          if (colIndex < column) {
+            initialStatus[rowIndex][colIndex] = status;
+          }
         });
-
-        return initialStatus;
+      }
     });
 
-    useEffect(() => {
-    setGridStatus((prev) => {
-        const newGrid = [...prev];
+    setGridStatus(initialStatus);
+  };
 
-        // 補足 row 數
-        while (newGrid.length < row) {
-            newGrid.push(Array(column).fill('上班'));
-        }
+  // 初始 gridStatus (避免空白)
+  useEffect(() => {
+    const parsed: WorkerData[] = GenerateWorkerData(returnData);
+    const initialStatus = Array(row)
+      .fill(null)
+      .map(() => Array(column).fill("上班"));
 
-        // 裁剪多餘的 row
-        if (newGrid.length > row) {
-            newGrid.length = row;
-        }
-
-        // 補足/裁剪 column
-        for (let i = 0; i < newGrid.length; i++) {
-            if (newGrid[i].length < column) {
-                newGrid[i] = [...newGrid[i], ...Array(column - newGrid[i].length).fill('上班')];
-            } else if (newGrid[i].length > column) {
-                newGrid[i] = newGrid[i].slice(0, column);
-            }
-        }
-
-        return newGrid;
+    parsed.forEach((worker, rowIndex) => {
+      if (rowIndex < row) {
+        worker.status.forEach((status, colIndex) => {
+          if (colIndex < column) {
+            initialStatus[rowIndex][colIndex] = status;
+          }
+        });
+      }
     });
-}, [row, column]);
 
-    return (
-        <>
-            
-            <div className=" w-full flex gap-x-20 bg-gray-100">
-                {isPending && (
-                    <div className="fixed top-[5vh] left-0 w-full h-full bg-[rgba(0,0,0,0.7)] z-[100] flex items-center justify-center">
-                        <div className=" w-[20%] h-[30vh] bg-white text-black text-2xl rounded-4xl flex justify-center items-center"><div className="animate-pulse">計算中...</div></div>
-                    </div>
-                )}
-                <div className="w-[50%] mt-5 h-fit ml-20">
-                    <ShiftArea gridStatus={gridStatus} setGridStatus={setGridStatus} isModify={isModify} setModify={setModify} refresh={() => refresh(GenerateWorkerData(returnData))} toWs={(e) => { startTransition(() => { toWS(e) }) }} name={name} column={column} data={GenerateWorkerData(returnData)}></ShiftArea>
-                </div>
-                <div className=" w-[100%] mt-5 h-fit">
-                    <AttributePanel gridStatus={gridStatus} setRow={setRow} setColumn={setColumn} row={row} column={column}></AttributePanel>
-                </div>
+    setGridStatus(initialStatus);
+  }, [row, column]);
 
+  return (
+    <>
+      <div className=" w-full flex gap-x-20 bg-gray-100">
+        {isPending && (
+          <div className="fixed top-[5vh] left-0 w-full h-full bg-[rgba(0,0,0,0.7)] z-[100] flex items-center justify-center">
+            <div className=" w-[20%] h-[30vh] bg-white text-black text-2xl rounded-4xl flex justify-center items-center">
+              <div className="animate-pulse">計算中...</div>
             </div>
-        </>
-    );
+          </div>
+        )}
+        <div className="w-[50%] mt-5 h-fit ml-20">
+          <ShiftArea
+            constraints={constraints}
+            setConstraints={setConstraints}
+            gridStatus={gridStatus}
+            setGridStatus={setGridStatus}
+            isModify={isModify}
+            setModify={setModify}
+            refresh={() => refresh(GenerateWorkerData(returnData))}
+            toWs={(e) => {
+              startTransition(() => {
+                toWS(e);
+              });
+            }}
+            name={name}
+            column={column}
+            data={GenerateWorkerData(returnData)}
+          ></ShiftArea>
+        </div>
+        <div className=" w-[100%] mt-5 h-fit">
+          <AttributePanel
+            constraints={constraints}
+            setConstraints={setConstraints}
+            gridStatus={gridStatus}
+            setRow={setRow}
+            setColumn={setColumn}
+            row={row}
+            column={column}
+          ></AttributePanel>
+        </div>
+      </div>
+    </>
+  );
 }

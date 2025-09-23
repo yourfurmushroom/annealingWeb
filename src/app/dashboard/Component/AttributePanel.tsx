@@ -1,6 +1,7 @@
 /* eslint-disable */
 import React, { useEffect, useState } from "react";
 import { TagsDefinition } from "./Utilities";
+
 interface AttributeInterface {
   setRow: React.Dispatch<React.SetStateAction<number>>;
   setColumn: React.Dispatch<React.SetStateAction<number>>;
@@ -8,6 +9,8 @@ interface AttributeInterface {
   column: number;
   gridStatus: string[][];
   reservedLeave?: Record<string, number[]>;
+  constraints: Constraint[];
+  setConstraints: React.Dispatch<React.SetStateAction<Constraint[]>>;
 }
 
 interface Constraint {
@@ -15,8 +18,7 @@ interface Constraint {
   parameters: Record<string, any>;
 }
 
-export default function AttributePanel({ gridStatus, setRow, setColumn, column, row, reservedLeave }: AttributeInterface) {
-  const [constraints, setConstraints] = useState<Constraint[]>([]);
+export default function AttributePanel({ gridStatus, setRow, setColumn, column, row, reservedLeave,constraints, setConstraints }: AttributeInterface) {
   const [overallScore, setOverallScore] = useState<number>(0);
   const [scoreBreakdown, setScoreBreakdown] = useState<Record<string, { score: number; weight: number }>>({});
   const [modalTag, setModalTag] = useState<TagProps | null>(null);
@@ -104,7 +106,7 @@ export default function AttributePanel({ gridStatus, setRow, setColumn, column, 
         <Score overallScore={overallScore} scoreBreakdown={scoreBreakdown} />
       </div>
       <div className="bg-white shadow-2xl shadow-gray-300">
-        <ShiftConfiguration gridStatus={gridStatus} setRow={setRow} setColumn={setColumn} column={column} row={row} />
+        <ShiftConfiguration gridStatus={gridStatus} setRow={setRow} setColumn={setColumn} column={column} row={row} constraints={constraints} setConstraints={setConstraints} />
       </div>
       <div className="bg-white shadow-2xl shadow-gray-300">
         <TagSelector
@@ -153,7 +155,7 @@ function Score({ overallScore, scoreBreakdown }: { overallScore: number; scoreBr
   );
 }
 
-function ShiftConfiguration({ setRow, setColumn, column, row }: AttributeInterface) {
+function ShiftConfiguration({ setRow, setColumn, column, row,constraints, setConstraints }: AttributeInterface) {
   return (
     <div className="h-fit bg-white p-4 rounded shadow">
       <h2 className="text-lg font-bold mb-4">排班配置</h2>
@@ -215,7 +217,7 @@ function TagSelector({ constraints, onRemoveConstraint, onOpenModal }: TagSelect
               <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 z-10 -top-10">
                 {isAdded && constraints.find(c => c.name === tag.key) ? (
                   <div>
-                    參數:
+                    parameters:
                     <br />
                     {Object.entries(constraints.find(c => c.name === tag.key)?.parameters || {}).map(
                       ([key, value], index) =>
@@ -226,7 +228,7 @@ function TagSelector({ constraints, onRemoveConstraint, onOpenModal }: TagSelect
                           </span>
                         ) : null
                     )}
-                    權重: {constraints.find(c => c.name === tag.key)?.parameters["weight"] || 1}
+                    weight: {constraints.find(c => c.name === tag.key)?.parameters["weight"] || 1}
                   </div>
                 ) : (
                   "點擊設置參數"
