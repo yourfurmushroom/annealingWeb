@@ -1,9 +1,13 @@
+import { useState } from "react";
+
 interface InputFormProps {
   name: string;
   icon: React.ReactNode;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-function InputForm({ name, icon }: InputFormProps) {
+function InputForm({ name, value, onChange, icon }: InputFormProps) {
   let columnName = "";
 
   if(name === "Username"){
@@ -40,6 +44,8 @@ function InputForm({ name, icon }: InputFormProps) {
               className="block min-w-0 grow bg-white py-1.5 pr-3 pl-1 
                            text-base text-gray-900 placeholder:text-gray-400 
                            focus:outline-none sm:text-sm/6"
+              value={value}
+              onChange={onChange}
             />
           </div>
         </div>
@@ -83,10 +89,14 @@ const passwordIcon = (
 );
 
 function LoginForm() {
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+
   return (
     <>
-      <InputForm name="Username" icon={userIcon} />
-      <InputForm name="Password" icon={passwordIcon} />
+      <InputForm name="Username" icon={userIcon} value={username} onChange={(e) => setUsername(e.target.value)}/>
+      <InputForm name="Password" icon={passwordIcon} value={password} onChange={(e) => setPassword(e.target.value)}/>
+      
       <div className="mt-5">
         <button
           type="submit"
