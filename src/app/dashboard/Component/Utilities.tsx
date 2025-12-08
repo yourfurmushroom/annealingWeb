@@ -45,14 +45,14 @@ function sum(arr: number[]) {
 
 export const TagsDefinition: TagProps[] = [
     {
-        text: 'Expected number of working days',
+        text: '預期工作天數',
         key: 'expected_working_days',
-        description: `The number of working days that the employee is expected to work in a month.`,
+        description: `員工在一個月中預期應該工作的天數。`,
         parameters: [
             {
-                parameter_name: 'Expected number of working days',
+                parameter_name: '預期工作天數',
                 parameter_alias: 'ewd',
-                parameter_description: 'Expected number of working days'
+                parameter_description: '預期工作天數'
             },
         ],
         evaluate: (shift: number[][], parameters: Parameters) => {
@@ -73,20 +73,18 @@ export const TagsDefinition: TagProps[] = [
         }
     },
     {
-        text: 'Customized leave',
+        text: '自訂休假',
         key: 'customize_leave',
-        description: `You are able to customize the leave for each employee, please edit the shift for each employee. 
-                      1 is denoted as a working day, 0 is denoted as a leave day.`,
+        description: `你可以為每個員工自訂休假，請編輯每位員工的班表。 
+                      1 代表工作日，0 代表休假日。`,
         parameters: [],
         evaluate: (shift: number[][], parameters: Parameters) => {
             return new Promise((resolve, reject) => {
-                // console.log(parameters)
                 const reserved_leave = parameters['reserved_leave'];
                 if (!reserved_leave || typeof reserved_leave !== 'object') {
                     resolve(1); // 如果沒給 leave，視為完全符合
                     return;
                 }
-                // console.log(reserved_leave)
                 let failed = 0;
                 let amount_of_reserved_leave = 0;
                 Object.entries(reserved_leave).forEach(([key, value]) => {
@@ -100,19 +98,18 @@ export const TagsDefinition: TagProps[] = [
                 });
 
                 resolve(amount_of_reserved_leave ? 1 - (failed / amount_of_reserved_leave) : 1);
-                // resolve(0.1)
             })
         }
     },
     {
-        text: 'Expected number of workers per shift',
+        text: '每班預期人數',
         key: 'expected_number_of_workers_per_shift',
-        description: `The number of workers that are expected to work in a shift.`,
+        description: `每個班次預期應該安排的員工人數。`,
         parameters: [
             {
-                parameter_name: 'Expected number of workers per shift',
+                parameter_name: '每班預期人數',
                 parameter_alias: 'enwps',
-                parameter_description: 'Expected number of workers per shift'
+                parameter_description: '每班預期人數'
             }
         ],
         evaluate: (shift: number[][], parameters: Parameters) => {
@@ -139,16 +136,15 @@ export const TagsDefinition: TagProps[] = [
         }
     },
     {
-        text: 'Maximum consecutive working days',
+        text: '最長連續工作天數',
         key: 'maximum_consecutive_working_days',
-        description: `The maximum number of consecutive working days. 
-        For example, set the maximum consecutive working days is 5. 
-        The algorithm would try to avoid arranging the employee to work for more than 5 consecutive days.`,
+        description: `最長連續工作天數。 
+        例如，設定最長連續工作天數為 5，演算法會盡量避免員工連續超過 5 天工作。`,
         parameters: [
             {
-                parameter_name: 'Maximum consecutive working days',
+                parameter_name: '最長連續工作天數',
                 parameter_alias: 'mcwd',
-                parameter_description: 'Maximum consecutive working days'
+                parameter_description: '最長連續工作天數'
             }
         ],
         evaluate: (shift: number[][], parameters: Parameters) => {
@@ -180,15 +176,15 @@ export const TagsDefinition: TagProps[] = [
         }
     },
     {
-        text: 'Minimum n-days leave within 7-days',
+        text: '7 天內最少休假天數',
         key: 'minimum_n_days_leave_within_7_days',
-        description: `The minimum number of days that the employee is expected to take leave within 7 days.
-        For example, set the minimum n-days leave within 7-days is 2. The employee would have at least 2 leave days within 7 days.`,
+        description: `員工在 7 天內至少應該有的休假天數。
+        例如，設定為 2，表示員工在 7 天內至少有 2 天休假。`,
         parameters: [
             {
-                parameter_name: 'Minimum n-days leave within 7-days',
+                parameter_name: '7 天內最少休假天數',
                 parameter_alias: 'mndlw7d',
-                parameter_description: 'Minimum n-days leave within 7-days'
+                parameter_description: '7 天內最少休假天數'
             }
         ],
         evaluate: (shift: number[][], parameters: Parameters) => {
@@ -221,9 +217,9 @@ export const TagsDefinition: TagProps[] = [
         }
     },
     {
-        text: 'Successive shift pair',
+        text: '連續班次配對',
         key: 'successive_shift_pair',
-        description: `The successive shift pair constraint is for the employee who likes to work on consecutive days`,
+        description: `連續班次配對：適用於喜歡連續工作天數的員工。`,
         parameters: [],
         evaluate: (shift: number[][], parameters: {}) => {
             return new Promise((resolve, reject) => {
@@ -249,9 +245,9 @@ export const TagsDefinition: TagProps[] = [
         }
     },
     {
-        text: 'Consecutive leave',
+        text: '連續休假',
         key: 'consecutive_2_days_leave',
-        description: `The algorithm would try to arrange the employee to take consecutive days leave.`,
+        description: `演算法會盡量安排員工有連續休假日。`,
         parameters: [],
         evaluate: (shift: number[][], parameters: {}) => {
             return new Promise((resolve, reject) => {
@@ -276,9 +272,9 @@ export const TagsDefinition: TagProps[] = [
         }
     },
     {
-        text: 'No consecutive leave',
+        text: '不允許連續休假',
         key: 'no_consecutive_leave',
-        description: `The shift would try not to arange the employee to take consecutive leave days. `,
+        description: `演算法會盡量避免安排員工連續休假。`,
         parameters: [],
         evaluate: (shift: number[][], parameters: {}) => {
             return new Promise((resolve, reject) => {
@@ -302,7 +298,6 @@ export const TagsDefinition: TagProps[] = [
                         }
                     }
                 }
-                // console.log(failed)
                 resolve(amount_of_leave === 0 ? 1 : 1 - (failed / amount_of_leave));
             })
         }

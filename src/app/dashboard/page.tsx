@@ -15,7 +15,7 @@ interface Constraint {
   parameters: Record<string, any>;
 }
 
-export default function Home() {
+export default function Dashboard() {
   const [row, setRow] = useState<number>(0);
   const [column, setColumn] = useState<number>(30);
   const [name, setName] = useState<string>("untitled");
@@ -23,14 +23,14 @@ export default function Home() {
   const [constraints, setConstraints] = useState<Constraint[]>([]);
   const [gridStatus, setGridStatus] = useState<string[][]>([]);
   const [isPending, setIsPending] = useState<boolean>(false);
-
+  const [usedTime,setUsedTime]=useState<number>(0)
   const [ws, setWs] = useState<WebSocket | null>(null);
 
   const [returnData, setReturnData] = useState<string>("[]");
 
   useEffect(() => {
-    // TODO: 換成你的實際 WS URL
     const socket = new WebSocket(`${window.location.origin.replace(/^http/, 'ws')}/zihui/ws/`);
+    // const socket = new WebSocket('ws://localhost:9999')
 
     socket.onopen = () => {
       console.log("✅ WebSocket 已連線");
@@ -50,16 +50,16 @@ export default function Home() {
         // 存起來給 GenerateWorkerData 使用
         setReturnData(JSON.stringify(parsed));
       } catch (err) {
-        console.error("WS 解析失敗:", err);
+      alert(`WS 解析失敗:${err}`);
       }
     };
 
     socket.onerror = (err) => {
-      console.error("WebSocket 錯誤:", err);
+      alert(`WebSocket 錯誤::${err}`);
     };
 
     socket.onclose = () => {
-      console.log("❌ WebSocket 已關閉");
+      console.log(`WebSocket 已關閉`);
     };
 
     setWs(socket);
@@ -69,6 +69,24 @@ export default function Home() {
       socket.close();
     };
   }, []);
+
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+
+    if (isPending) {
+      setUsedTime(0); // 每次重新開始計算時歸零
+      timer = setInterval(() => {
+        setUsedTime((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (timer) clearInterval(timer);
+    }
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isPending]);
 
   // 發送資料
   const toWS = (operation: string) => {
@@ -162,8 +180,9 @@ export default function Home() {
       <div className=" w-full flex gap-x-20 bg-gray-100">
         {isPending && (
           <div className="fixed top-[5vh] left-0 w-full h-full bg-[rgba(0,0,0,0.7)] z-[100] flex items-center justify-center">
-            <div className=" w-[20%] h-[30vh] bg-white text-black text-2xl rounded-4xl flex justify-center items-center">
+            <div className=" w-[20%] h-[30vh] bg-white text-black text-2xl rounded-4xl flex flex-col justify-center items-center space-y-2">
               <div className="animate-pulse">計算中...</div>
+              <div className="text-gray-400 text-lg">已用時 {usedTime} 秒</div>
             </div>
           </div>
         )}

@@ -33,7 +33,7 @@ export default function RootLayout({
   useEffect(() => {
     console.log(pageName)
     if (pageName === "Dashboard") {
-      router.push("/dashboard")
+      router.push("/")
     }
     else if (pageName === "Digital") {
       router.push("/digitalAnnealing")

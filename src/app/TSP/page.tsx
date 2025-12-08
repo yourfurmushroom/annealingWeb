@@ -8,15 +8,15 @@ export default function Home() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const router = useRouter();
     const [numNodes, setNumNodes] = useState<number>(5);
-    const [houses, setHouses] = useState<{x: number, y: number, image: string}[]>([]);
+    const [houses, setHouses] = useState<{ x: number, y: number, image: string }[]>([]);
     const [currentPath, setCurrentPath] = useState<number[]>([]);
     const [currentDistance, setCurrentDistance] = useState<number>(0);
     const [distances, setDistances] = useState<number[][]>([]);
     const [iterationSpeed, setIterationSpeed] = useState<number>(500);
     const [startPoint, setStartPoint] = useState<number | null>(null);
-    const [panelPosition, setPanelPosition] = useState<{x: number, y: number}>({ x: 10, y: 10 });
+    const [panelPosition, setPanelPosition] = useState<{ x: number, y: number }>({ x: 10, y: 10 });
     const [isDraggingPanel, setIsDraggingPanel] = useState<boolean>(false);
-    const [dragOffset, setDragOffset] = useState<{x: number, y: number}>({ x: 0, y: 0 });
+    const [dragOffset, setDragOffset] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
     const [draggingHouse, setDraggingHouse] = useState<number | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState<Map<number, HTMLImageElement>>(new Map());
     const initialTemp = 1000;
@@ -48,7 +48,7 @@ export default function Home() {
             canvas.width = width;
             canvas.height = height;
 
-            const newHouses = Array.from({length: numNodes}, () => ({
+            const newHouses = Array.from({ length: numNodes }, () => ({
                 x: Math.random() * (width - 100) + 50,
                 y: Math.random() * (height - 100) + 50,
                 image: `zihui/images/${Math.floor(Math.random() * numImages) + 1}.png`
@@ -63,7 +63,7 @@ export default function Home() {
             );
             setDistances(newDistances);
 
-            let initialPath = Array.from({length: numNodes}, (_, i) => i).sort(() => Math.random() - 0.5);
+            let initialPath = Array.from({ length: numNodes }, (_, i) => i).sort(() => Math.random() - 0.5);
             if (startPoint !== null && startPoint < numNodes) {
                 const idx = initialPath.indexOf(startPoint);
                 if (idx !== -1) {
@@ -180,7 +180,7 @@ export default function Home() {
             );
             setDistances(newDistances);
 
-            let newPath = Array.from({length: numNodes}, (_, i) => i).sort(() => Math.random() - 0.5);
+            let newPath = Array.from({ length: numNodes }, (_, i) => i).sort(() => Math.random() - 0.5);
             if (startPoint !== null) {
                 const idx = newPath.indexOf(startPoint);
                 if (idx !== -1) {
@@ -215,7 +215,7 @@ export default function Home() {
 
             if (closestIdx !== -1) {
                 setStartPoint(closestIdx);
-                const newPath = [closestIdx, ...Array.from({length: numNodes}, (_, i) => i).filter(i => i !== closestIdx).sort(() => Math.random() - 0.5)];
+                const newPath = [closestIdx, ...Array.from({ length: numNodes }, (_, i) => i).filter(i => i !== closestIdx).sort(() => Math.random() - 0.5)];
                 setCurrentPath(newPath);
                 setCurrentDistance(calculatePathDistance(newPath, distances));
                 setTemperature(initialTemp);
@@ -356,8 +356,9 @@ export default function Home() {
 
     return (
         <>
-            <div style={{ position: 'relative' }}>
-                <canvas ref={canvasRef} style={{ display: 'block' }} onClick={handleCanvasClick} onMouseDown={handleCanvasMouseDown}></canvas>
+            <div style={{ position: 'relative', backgroundImage: "url('/zihui/images/background.png')",backgroundSize: "cover",backgroundPosition: "center",backgroundRepeat: "no-repeat" }}>
+                
+                <canvas ref={canvasRef} style={{ display: 'block',zIndex:10 }} onClick={handleCanvasClick} onMouseDown={handleCanvasMouseDown}></canvas>
                 <div style={{
                     position: 'absolute',
                     left: `${panelPosition.x}px`,
@@ -381,7 +382,7 @@ export default function Home() {
                         Control Panel
                     </div>
                     <div style={{ marginTop: '10px' }}>
-                        <p>Current Path: {currentPath.map(i => i+1).join(' -> ')} -&gt; {currentPath[0]+1}</p>
+                        <p>Current Path: {currentPath.map(i => i + 1).join(' -> ')} -&gt; {currentPath[0] + 1}</p>
                         <p>Total Distance: {currentDistance}</p>
                         <p>Temperature: {temperature.toFixed(2)}</p>
                         <p>Start Point: {startPoint !== null ? startPoint + 1 : 'Not set'}</p>

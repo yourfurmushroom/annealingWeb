@@ -25,7 +25,7 @@ interface ShiftAreaProps {
 }
 
 export default function ShiftArea({ name, data, column, toWs, gridStatus, setGridStatus, setModify, refresh, isModify,constraints, setConstraints }: ShiftAreaProps) {
-    const [machine,setMachine]=useState<string>("fujitsu")
+    const [machine,setMachine]=useState<string>("jinbo")
 
     const updateCellStatus = (rowIndex: number, colIndex: number, value: string) => {
         setGridStatus((prev) => {
@@ -128,9 +128,9 @@ function ControlPanel({ SendToWs, refresh, setModify, isModify,machine,setMachin
         <div className='flex items-center gap-x-6 px-4 '>
             <div>
                 <select value={machine} onChange={(e)=>setMachine(e.target.value)}>
-                <option value="fujitsu">富士通</option>
                 <option value="jinbo">仁寶</option>
-                <option value="da">數位退火</option>
+                <option value="fujitsu">富士通</option>
+                <option value="da">模擬退火</option>
                 </select>
             </div>
             <div title="計算" className=' hover:scale-120 duration-200 ease-in-out' onClick={() => SendToWs('Calculate')}>

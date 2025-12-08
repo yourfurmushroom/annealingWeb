@@ -46,7 +46,7 @@ export default function AttributePanel({ gridStatus, setRow, setColumn, column, 
             parameters
           );
           const weight = Math.max(1, Number(constraint.parameters["weight"]) || 1);
-          console.log(`規則: ${tag.text}, 分數: ${score}, 權重: ${weight}, 參數:`, parameters);
+          console.log(`規則: ${tag.text}, 分數: ${score}, 重要程度: ${weight}, 參數:`, parameters);
           breakdown[tag.text] = { score: Math.max(0, Math.min(1, score)), weight };
           totalScore += score * weight;
           totalWeight += weight;
@@ -65,8 +65,17 @@ export default function AttributePanel({ gridStatus, setRow, setColumn, column, 
   }, [gridStatus, constraints, reservedLeave]);
 
   const handleAddConstraint = (constraint: Constraint) => {
-    setConstraints(prev => [...prev.filter(c => c.name !== constraint.name), constraint]);
-  };
+  setConstraints(prev => [
+    ...prev.filter(c => c.name !== constraint.name),
+    {
+      ...constraint,
+      parameters: {
+        ...constraint.parameters,
+        weight: constraint.parameters.weight ?? 1, // 如果沒有就給 1
+      }
+    }
+  ]);
+};
 
   const handleRemoveConstraint = (constraintName: string) => {
     setConstraints(prev => prev.filter(c => c.name !== constraintName));
@@ -145,7 +154,7 @@ function Score({ overallScore, scoreBreakdown }: { overallScore: number; scoreBr
             <div key={uniqueKey} className="flex justify-between border-b pb-2">
               <span className="text-gray-700">{key}</span>
               <span className="font-semibold text-gray-900">
-                {(value.score * 100).toFixed(2)}% (權重: {value.weight})
+                {(value.score * 100).toFixed(2)}% (重要程度: {value.weight})
               </span>
             </div>
           );
@@ -272,14 +281,14 @@ function TagModal({ tag, formValues, onInputChange, onAdd, onClose }: TagModalPr
           </div>
         ))}
         <div className="mb-4">
-          <label className="mr-2">權重:</label>
+          <label className="mr-2">重要程度:</label>
           <input
             type="number"
             name="weight"
             value={formValues["weight"] || ""}
             onChange={onInputChange}
             className="border p-1 rounded w-full"
-            placeholder="請輸入權重"
+            placeholder="請輸入重要程度"
             min="1"
             step="1"
           />

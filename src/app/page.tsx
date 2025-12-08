@@ -1,6 +1,7 @@
 'use client'
 import React, { useActionState, useEffect, useState} from "react";
-import Link from 'next/link';
+// import Link from 'next/link';
+import Dashboard from "./dashboard/page";
 
 export default function Home() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -25,13 +26,14 @@ export default function Home() {
 
   return (
   <>
-    welcome
+    {/* welcome
     <Link
       href="/dashboard"
       className="text-[50px] text-blue-500 hover:scale-150 ease-in-out duration-200"
     >
       click to dashboard
-    </Link>
+    </Link> */}
+    <Dashboard></Dashboard>
   </>
 );
 }
